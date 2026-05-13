@@ -60,10 +60,19 @@ class AuthController extends Controller
         }
 
         // التحقق من ربط الجهاز للطلاب (Device Binding)
-        if ($user->role === 'student' && $request->device_uuid && $user->device_uuid !== $request->device_uuid) {
-            return response()->json([
-                'message' => 'هذا الحساب مرتبط بجهاز آخر. يرجى التواصل مع الإدارة لفك الارتباط.'
-            ], 403);
+        if ($user->role === 'student') {
+            if ($user->device_uuid && $user->device_uuid !== $request->device_uuid) {
+                return response()->json([
+                    'message' => 'هذا الحساب مرتبط بجهاز آخر. يرجى التواصل مع الإدارة لفك الارتباط.',
+                    'error_code' => 'DEVICE_MISMATCH'
+                ], 403);
+            }
+            
+            // إذا كان الطالب لم يربط جهازه بعد، نقوم بربطه عند أول دخول
+            if (!$user->device_uuid && $request->device_uuid) {
+                $user->device_uuid = $request->device_uuid;
+                $user->save();
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

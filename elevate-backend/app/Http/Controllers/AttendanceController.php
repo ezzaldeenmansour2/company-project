@@ -18,12 +18,18 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'course_id' => 'required|exists:courses,id',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'radius' => 'nullable|integer|min:10',
         ]);
 
         $session = AttendanceSession::create([
             'course_id' => $request->course_id,
             'instructor_id' => Auth::id(),
             'status' => 'active',
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'radius' => $request->radius ?? 100,
             'started_at' => now(),
         ]);
 
@@ -76,6 +82,8 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'qr_token' => 'required|string',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $user = Auth::user();
@@ -89,6 +97,22 @@ class AttendanceController extends Controller
         $validToken = Cache::get("attendance_token_{$sessionId}");
         if ($request->qr_token !== $validToken) {
             return response()->json(['message' => 'انتهت صلاحية الرمز، يرجى المحاولة مرة أخرى'], 403);
+        }
+
+        // التحقق من الموقع الجغرافي (إذا كان مفعلاً للجلسة)
+        if ($session->latitude && $session->longitude && $request->latitude && $request->longitude) {
+            $distance = $this->calculateDistance(
+                $session->latitude, $session->longitude,
+                $request->latitude, $request->longitude
+            );
+
+            if ($distance > $session->radius) {
+                return response()->json([
+                    'message' => 'أنت خارج النطاق المسموح به للتحضير. يجب أن تكون في القاعة.',
+                    'distance' => round($distance, 2),
+                    'max_radius' => $session->radius
+                ], 403);
+            }
         }
 
         // التحقق من القفل الذري (Atomic Lock) - منع المسح المتزامن
@@ -132,5 +156,23 @@ class AttendanceController extends Controller
         $session = AttendanceSession::findOrFail($sessionId);
         $session->update(['status' => 'closed']);
         return response()->json(['message' => 'تم إغلاق جلسة التحضير']);
+    }
+    /**
+     * حساب المسافة بين نقطتين (Haversine formula) بالمتر
+     */
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // بالمتر
+
+        $latDelta = deg2rad($lat2 - $lat1);
+        $lonDelta = deg2rad($lon2 - $lon1);
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($lonDelta / 2) * sin($lonDelta / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 }

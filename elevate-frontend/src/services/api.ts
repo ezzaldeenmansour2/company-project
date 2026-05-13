@@ -8,12 +8,19 @@ const api = axios.create({
   },
 });
 
-// إضافة التوكن للطلبات إذا كان موجوداً
+// إضافة التوكن ومعرف الجهاز للطلبات
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('auth_token');
+  const deviceUuid = localStorage.getItem('device_uuid');
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  if (deviceUuid) {
+    config.headers['X-Device-UUID'] = deviceUuid;
+  }
+  
   return config;
 });
 
