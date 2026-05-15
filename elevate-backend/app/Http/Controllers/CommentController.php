@@ -18,6 +18,10 @@ class CommentController extends Controller
             'content' => 'required|string',
         ]);
 
+        if (Auth::user()->is_banned_from_forum) {
+            return response()->json(['message' => 'لقد تم حظرك من المشاركة في المنتدى.'], 403);
+        }
+
         $comment = Comment::create([
             'post_id' => $request->post_id,
             'user_id' => Auth::id(),

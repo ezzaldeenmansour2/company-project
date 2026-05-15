@@ -29,6 +29,7 @@ class User extends Authenticatable
         'device_uuid',
         'fingerprint_hash',
         'is_blocked',
+        'is_banned_from_forum',
     ];
 
     /**

@@ -35,6 +35,10 @@ class PostController extends Controller
             'options.*' => 'required_with:options|string'
         ]);
 
+        if (Auth::user()->is_banned_from_forum) {
+            return response()->json(['message' => 'لقد تم حظرك من المشاركة في المنتدى.'], 403);
+        }
+
         $post = Post::create([
             'course_id' => $request->course_id,
             'user_id' => Auth::id(),
@@ -78,6 +82,10 @@ class PostController extends Controller
         $request->validate([
             'poll_option_id' => 'required|exists:poll_options,id',
         ]);
+
+        if (Auth::user()->is_banned_from_forum) {
+            return response()->json(['message' => 'لقد تم حظرك من المشاركة في المنتدى.'], 403);
+        }
 
         $post = Post::findOrFail($postId);
 
