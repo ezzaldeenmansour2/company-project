@@ -3,13 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\Discount;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class CourseController extends Controller
 {
     public function index()
     {
+        $user = Auth::guard('sanctum')->user();
         $courses = Course::with(['category', 'instructor'])->get();
+
+        $now = Carbon::now();
+
+        // ÅÖÇİÉ ÇáÎÕæãÇÊ áßá ÏæÑÉ
+        $courses->map(function ($course) use ($now, $user) {
+            $query = Discount::where('course_id', $course->id)
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+                });
+
+            if ($user) {
+                // ÇáÈÍË Úä ÎÕã ãÎÕÕ ááØÇáÈ Ãæ ÎÕã ÚÇã ááÏæÑÉ
+                $query->where(function ($q) use ($user) {
+                    $q->whereNull('user_id')->orWhere('user_id', $user->id);
+                });
+            } else {
+                // ÒÇÆÑ: ÚÑÖ ÇáÎÕæãÇÊ ÇáÚÇãÉ İŞØ
+                $query->whereNull('user_id');
+            }
+
+            // ÃÎĞ ÃÚáì äÓÈÉ ÎÕã
+            $bestDiscount = $query->orderByDesc('percentage')->first();
+
+            if ($bestDiscount) {
+                $course->discount_percentage = $bestDiscount->percentage;
+                $course->discounted_price = $course->price - ($course->price * ($bestDiscount->percentage / 100));
+            } else {
+                $course->discount_percentage = 0;
+                $course->discounted_price = $course->price;
+            }
+
+            return $course;
+        });
+
         return response()->json($courses);
     }
 
@@ -22,14 +63,13 @@ class CourseController extends Controller
             'price' => 'numeric|min:0',
         ]);
 
-        // Ù†ÙØªØ±Ø¶ Ø£Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ø§Ù„ÙŠ Ù‡Ùˆ Ø§Ù„Ù…Ø¯Ø±Ø¨ (Ø£Ùˆ Ø§Ù„Ø¢Ø¯Ù…Ù†)
         $validated['instructor_id'] = $request->user()->id;
-        $validated['status'] = 'published'; // Ù„Ù„ØªØ¨Ø³ÙŠØ· Ø­Ø§Ù„ÙŠØ§Ù‹
+        $validated['status'] = 'published'; 
 
         $course = Course::create($validated);
 
         return response()->json([
-            'message' => 'ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¯ÙˆØ±Ø© Ø¨Ù†Ø¬Ø§Ø­',
+            'message' => 'Êã ÅäÔÇÁ ÇáÏæÑÉ ÈäÌÇÍ',
             'course' => $course->load(['category', 'instructor'])
         ], 201);
     }
@@ -37,6 +77,36 @@ class CourseController extends Controller
     public function show($id)
     {
         $course = Course::with(['category', 'instructor', 'lessons'])->findOrFail($id);
+        
+        $user = Auth::guard('sanctum')->user();
+        $now = Carbon::now();
+        
+        $query = Discount::where('course_id', $course->id)
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+                })
+                ->where(function ($q) use ($now) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+                });
+
+        if ($user) {
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('user_id')->orWhere('user_id', $user->id);
+            });
+        } else {
+            $query->whereNull('user_id');
+        }
+
+        $bestDiscount = $query->orderByDesc('percentage')->first();
+
+        if ($bestDiscount) {
+            $course->discount_percentage = $bestDiscount->percentage;
+            $course->discounted_price = $course->price - ($course->price * ($bestDiscount->percentage / 100));
+        } else {
+            $course->discount_percentage = 0;
+            $course->discounted_price = $course->price;
+        }
+
         return response()->json($course);
     }
 }

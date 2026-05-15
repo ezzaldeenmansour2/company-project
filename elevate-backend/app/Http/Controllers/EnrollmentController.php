@@ -4,13 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\CoursePrerequisite;
+use App\Models\PrerequisiteException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class EnrollmentController extends Controller
 {
     /**
-     * Ø¬Ù„Ø¨ Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø§Ù„ØªÙŠ Ø§Ø´ØªØ±Ùƒ ÙÙŠÙ‡Ø§ Ø§Ù„Ø·Ø§Ù„Ø¨ Ø§Ù„Ø­Ø§Ù„ÙŠ
+     * ÌáÈ ÇáÏæÑÇÊ ÇáÊí ÇÔÊÑß ÝíåÇ ÇáØÇáÈ ÇáÍÇáí
      */
     public function myCourses()
     {
@@ -19,24 +21,61 @@ class EnrollmentController extends Controller
             ->with(['course.category', 'course.instructor'])
             ->get();
         
-        return response()->json($enrollments->pluck('course'));
+        // íãßä ááæÇÌåÉ ÇáÃãÇãíÉ ÇáÂä ãÚÑÝÉ ãÇ ÅÐÇ ßÇä ÇáØÇáÈ ãÍÙæÑÇð ãä ÎáÇá ÇáÜ pivot¡ æáßä ÇáÏÇáÉ ÇáÃÕáíÉ ßÇäÊ ÊÑÌÚ ÇáÏæÑÉ ÝÞØ
+        // ÓäÞæã ÈÏãÌ ÍÇáÉ ÇáÊÓÌíá ãÚ ÈíÇäÇÊ ÇáÏæÑÉ
+        $courses = $enrollments->map(function ($enrollment) {
+            $course = $enrollment->course;
+            $course->enrollment_status = $enrollment->status;
+            $course->is_blocked = $enrollment->is_blocked;
+            $course->block_reason = $enrollment->block_reason;
+            return $course;
+        });
+
+        return response()->json($courses);
     }
 
     /**
-     * Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙÙŠ Ø¯ÙˆØ±Ø© Ø¬Ø¯ÙŠØ¯Ø©
+     * ÇáÇÔÊÑÇß Ýí ÏæÑÉ ÌÏíÏÉ
      */
     public function enroll(Request $request, $courseId)
     {
         $user = Auth::user();
         $course = Course::findOrFail($courseId);
 
-        // Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù…Ø§ Ø¥Ø°Ø§ ÙƒØ§Ù† Ø§Ù„Ø·Ø§Ù„Ø¨ Ù…Ø´ØªØ±ÙƒØ§Ù‹ Ø¨Ø§Ù„ÙØ¹Ù„
+        // ÇáÊÍÞÞ ããÇ ÅÐÇ ßÇä ÇáØÇáÈ ãÔÊÑßÇð ÈÇáÝÚá
         $existing = Enrollment::where('user_id', $user->id)
             ->where('course_id', $courseId)
             ->first();
 
         if ($existing) {
-            return response()->json(['message' => 'Ø£Ù†Øª Ù…Ø´ØªØ±Ùƒ Ø¨Ø§Ù„ÙØ¹Ù„ ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ø¯ÙˆØ±Ø©'], 400);
+            return response()->json(['message' => 'ÃäÊ ãÔÊÑß ÈÇáÝÚá Ýí åÐå ÇáÏæÑÉ'], 400);
+        }
+
+        // --- äÙÇã ÇáãÊØáÈÇÊ ÇáÃßÇÏíãíÉ (Prerequisites) ---
+        $prerequisites = CoursePrerequisite::where('course_id', $courseId)->get();
+        if ($prerequisites->isNotEmpty()) {
+            foreach ($prerequisites as $prereq) {
+                // ÇáÊÍÞÞ åá ÇÌÊÇÒ ÇáØÇáÈ åÐå ÇáÏæÑÉ
+                $hasCompletedPrereq = Enrollment::where('user_id', $user->id)
+                    ->where('course_id', $prereq->prerequisite_course_id)
+                    ->where('status', 'completed')
+                    ->exists();
+
+                if (!$hasCompletedPrereq) {
+                    // ÇáÊÍÞÞ ãä æÌæÏ ÇÓÊËäÇÁ ãÚÊãÏ
+                    $hasApprovedException = PrerequisiteException::where('user_id', $user->id)
+                        ->where('course_id', $courseId)
+                        ->where('status', 'approved')
+                        ->exists();
+
+                    if (!$hasApprovedException) {
+                        return response()->json([
+                            'message' => 'áã ÊÓÊæÝö ãÊØáÈÇÊ åÐå ÇáÏæÑÉ Ãæ áÇ Êãáß ÇÓÊËäÇÁ ãÚÊãÏ.',
+                            'requires_exemption' => true
+                        ], 403);
+                    }
+                }
+            }
         }
 
         $enrollment = Enrollment::create([
@@ -46,21 +85,52 @@ class EnrollmentController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'ØªÙ… Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙÙŠ Ø§Ù„Ø¯ÙˆØ±Ø© Ø¨Ù†Ø¬Ø§Ø­',
+            'message' => 'Êã ÇáÇÔÊÑÇß Ýí ÇáÏæÑÉ ÈäÌÇÍ',
             'enrollment' => $enrollment
         ], 201);
     }
 
     /**
-     * Ø¬Ù„Ø¨ Ø­Ø§Ù„Ø© Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ù„Ø¯ÙˆØ±Ø© Ù…Ø¹ÙŠÙ†Ø©
+     * ÌáÈ ÍÇáÉ ÇáÇÔÊÑÇß áÏæÑÉ ãÚíäÉ
      */
     public function checkStatus($courseId)
     {
         $user = Auth::user();
-        $isEnrolled = Enrollment::where('user_id', $user->id)
+        $enrollment = Enrollment::where('user_id', $user->id)
             ->where('course_id', $courseId)
-            ->exists();
+            ->first();
 
-        return response()->json(['is_enrolled' => $isEnrolled]);
+        if ($enrollment) {
+            return response()->json([
+                'is_enrolled' => true,
+                'is_blocked' => $enrollment->is_blocked,
+                'block_reason' => $enrollment->block_reason
+            ]);
+        }
+
+        return response()->json(['is_enrolled' => false]);
+    }
+
+    /**
+     * ÍÙÑ ØÇáÈ ãä ÇáÏæÑÉ (ÅÏÇÑÉ)
+     */
+    public function blockStudent(Request $request, $enrollmentId)
+    {
+        $request->validate([
+            'block_reason' => 'required|string',
+            'report_document' => 'required|file|mimes:pdf,doc,docx|max:5120' // 5MB Max
+        ]);
+
+        $enrollment = Enrollment::findOrFail($enrollmentId);
+
+        $path = $request->file('report_document')->store('block_reports', 'public');
+
+        $enrollment->update([
+            'is_blocked' => true,
+            'block_reason' => $request->block_reason,
+            'block_report_path' => $path
+        ]);
+
+        return response()->json(['message' => 'Êã ÍÙÑ ÇáØÇáÈ ÈäÌÇÍ', 'enrollment' => $enrollment]);
     }
 }
