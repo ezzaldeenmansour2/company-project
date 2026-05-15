@@ -1,0 +1,10 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PromoAd extends Model
+{
+    protected  = ['title', 'image_path', 'link', 'is_active'];
+}
