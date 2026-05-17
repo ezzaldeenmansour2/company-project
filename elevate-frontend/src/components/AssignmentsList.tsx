@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClipboardList, Calendar, Send, CheckCircle, Clock, FileText, Plus, Loader2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
@@ -12,6 +13,7 @@ interface Assignment {
 }
 
 const AssignmentsList: React.FC<{ courseId: number }> = ({ courseId }) => {
+  const navigate = useNavigate();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,7 +99,10 @@ const AssignmentsList: React.FC<{ courseId: number }> = ({ courseId }) => {
               
               <div className="flex items-center justify-between pt-6 border-t border-white/5">
                 {isAdminOrInstructor ? (
-                  <button className="text-blue-400 text-xs font-bold hover:underline flex items-center gap-1">
+                  <button 
+                    onClick={() => navigate(`/assignments/${assignment.id}/submissions`)}
+                    className="text-blue-400 text-xs font-bold hover:underline flex items-center gap-1"
+                  >
                     عرض {assignment.submissions_count} حلاً مرسلاً
                   </button>
                 ) : (

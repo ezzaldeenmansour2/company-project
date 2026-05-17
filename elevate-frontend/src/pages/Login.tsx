@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, Smartphone, User as UserIcon, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogIn, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import api from '../services/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 const Login: React.FC = () => {
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [isLogin, setIsLogin] = useState(true);
-  const [role, setRole] = useState<'student' | 'instructor'>('student');
+  const [role, setRole] = useState<'super_admin' | 'academic_admin' | 'instructor' | 'student'>('student');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +18,6 @@ const Login: React.FC = () => {
     email: '',
     password: '',
     password_confirmation: '',
-    device_uuid: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,17 +28,17 @@ const Login: React.FC = () => {
     try {
       const endpoint = isLogin ? '/login' : '/register';
       const payload = isLogin 
-        ? { email: formData.email, password: formData.password, device_uuid: formData.device_uuid }
+        ? { email: formData.email, password: formData.password }
         : { ...formData, role };
 
       const response = await api.post(endpoint, payload);
       
       const { access_token, user } = response.data;
-      localStorage.setItem('auth_token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Update global state
+      setAuth(user, access_token);
 
-      alert(isLogin ? 'تم تسجيل الدخول بنجاح!' : 'تم إنشاء الحساب بنجاح!');
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
       
     } catch (err: any) {
       setError(err.response?.data?.message || 'حدث خطأ ما، يرجى المحاولة لاحقاً.');
@@ -133,59 +136,40 @@ const Login: React.FC = () => {
           </div>
 
           {!isLogin && (
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-              <input 
-                type="password" 
-                required
-                value={formData.password_confirmation}
-                onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})}
-                placeholder="تأكيد كلمة المرور"
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
-              />
-            </div>
-          )}
+            <>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                <input 
+                  type="password" 
+                  required
+                  value={formData.password_confirmation}
+                  onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})}
+                  placeholder="تأكيد كلمة المرور"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
+                />
+              </div>
 
-          {(!isLogin || (isLogin && role === 'student')) && (
-            <div className="space-y-4">
-              {!isLogin && (
-                <div className="flex gap-4">
-                  <button 
-                    type="button"
-                    onClick={() => setRole('student')}
-                    className={`flex-1 py-2 rounded-xl border transition-all text-xs ${role === 'student' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-white/10 text-gray-500'}`}
-                  >
-                    طالب
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setRole('instructor')}
-                    className={`flex-1 py-2 rounded-xl border transition-all text-xs ${role === 'instructor' ? 'bg-purple-600/20 border-purple-500 text-purple-400' : 'border-white/10 text-gray-500'}`}
-                  >
-                    مدرب
-                  </button>
+              <div className="space-y-3">
+                <label className="text-xs text-gray-400 mr-1">اختر نوع الحساب</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'student', label: 'طالب' },
+                    { id: 'instructor', label: 'مدرب' },
+                    { id: 'academic_admin', label: 'أكاديمي' },
+                    { id: 'super_admin', label: 'مدير' },
+                  ].map((r) => (
+                    <button 
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRole(r.id as any)}
+                      className={`py-2 rounded-xl border transition-all text-[10px] ${role === r.id ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-white/10 text-gray-500'}`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
                 </div>
-              )}
-
-              {(role === 'student' || isLogin) && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="relative"
-                >
-                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                  <input 
-                    type="text" 
-                    required={role === 'student'}
-                    value={formData.device_uuid}
-                    onChange={(e) => setFormData({...formData, device_uuid: e.target.value})}
-                    placeholder="مُعرّف الجهاز (UUID)"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-1 mr-1">ارتباط الحساب بالجهاز إلزامي للطالب.</p>
-                </motion.div>
-              )}
-            </div>
+              </div>
+            </>
           )}
 
           <motion.button 

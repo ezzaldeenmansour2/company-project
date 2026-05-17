@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Camera, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, CheckCircle, Loader2, AlertCircle, X } from 'lucide-react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import api from '../services/api';
 
 const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
   const [activeSession, setActiveSession] = useState<any>(null);
   const [isMarking, setIsMarking] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -24,17 +26,29 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
     return () => clearInterval(interval);
   }, [courseId]);
 
-  const simulateScan = async () => {
-    if (!activeSession) return;
+  const handleScan = async (scannedToken: string) => {
+    if (!activeSession || isMarking) return;
+    setIsScanning(false);
     setIsMarking(true);
     setStatus('idle');
     
     try {
-      // In a real app, this would get the token from a QR scanner.
-      // Here we fetch the current valid token from the API to simulate a successful scan.
-      const qrRes = await api.get(`/attendance/${activeSession.id}/qr`);
+      let lat = 0;
+      let lng = 0;
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        lat = position.coords.latitude;
+        lng = position.coords.longitude;
+      } catch (err) {
+        console.warn('Could not get student location');
+      }
+
       const res = await api.post(`/attendance/${activeSession.id}/mark`, {
-        qr_token: qrRes.data.qr_token
+        qr_token: scannedToken,
+        latitude: lat, 
+        longitude: lng 
       });
       
       setStatus('success');
@@ -45,6 +59,12 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
     } finally {
       setIsMarking(false);
     }
+  };
+
+  const toggleScanner = () => {
+    setIsScanning(!isScanning);
+    setStatus('idle');
+    setMessage('');
   };
 
   if (!activeSession) return null;
@@ -73,15 +93,45 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
           </div>
         ) : (
           <button
-            onClick={simulateScan}
+            onClick={toggleScanner}
             disabled={isMarking}
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl transition-all font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center gap-2"
           >
             {isMarking ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
-            تسجيل الحضور الآن
+            {isScanning ? 'إلغاء المسح' : 'تسجيل الحضور الآن'}
           </button>
         )}
       </div>
+
+      <AnimatePresence>
+        {isScanning && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-6 overflow-hidden relative rounded-2xl bg-black"
+          >
+            <Scanner 
+              onScan={(result) => {
+                if (result && result.length > 0) {
+                  handleScan(result[0].rawValue);
+                }
+              }}
+              onError={(error) => console.warn(error?.message)}
+              components={{
+                audio: false,
+                finder: true,
+              }}
+            />
+            <button 
+              onClick={() => setIsScanning(false)}
+              className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 z-10"
+            >
+              <X size={20} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {status === 'error' && (
         <div className="mt-4 flex items-center gap-2 text-red-500 text-xs bg-red-500/10 p-3 rounded-lg border border-red-500/10">

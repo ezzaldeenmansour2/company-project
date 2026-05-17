@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class MarketingController extends Controller
 {
     /**
-     * ÌáÈ ÇáÅÚáÇäÇÊ ÇáÊÑæíÌíÉ ÇáäÔØÉ (áæÇÌåÉ ÇáÊØÈíÞ)
+     * Get all active promo ads
      */
     public function getActiveAds()
     {
@@ -18,13 +18,13 @@ class MarketingController extends Controller
     }
 
     /**
-     * ÅäÔÇÁ ÅÚáÇä ÊÑæíÌí (ÅÏÇÑÉ)
+     * Store a new promo ad
      */
     public function storeAd(Request $request)
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'image' => 'required|image|max:2048',
+            'image' => 'required|image|max:5120', // Increased to 5MB
             'link' => 'nullable|url'
         ]);
 
@@ -37,11 +37,14 @@ class MarketingController extends Controller
             'is_active' => true
         ]);
 
-        return response()->json(['message' => 'Êã ÅäÔÇÁ ÇáÅÚáÇä ÈäÌÇÍ', 'ad' => $ad], 201);
+        return response()->json([
+            'message' => 'ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ø¨Ù†Ø¬Ø§Ø­',
+            'ad' => $ad
+        ], 201);
     }
 
     /**
-     * ÅäÔÇÁ ÎÕã ÇÓÊÑÇÊíÌí (ÅÏÇÑÉ)
+     * Store a new discount
      */
     public function storeDiscount(Request $request)
     {
@@ -55,6 +58,9 @@ class MarketingController extends Controller
 
         $discount = Discount::create($request->all());
 
-        return response()->json(['message' => 'Êã ÅÖÇÝÉ ÇáÎÕã ÈäÌÇÍ', 'discount' => $discount], 201);
+        return response()->json([
+            'message' => 'ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø®ØµÙ… Ø¨Ù†Ø¬Ø§Ø­',
+            'discount' => $discount
+        ], 201);
     }
 }

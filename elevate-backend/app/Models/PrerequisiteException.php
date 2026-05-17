@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class PrerequisiteException extends Model
 {
-    protected  = ['user_id', 'course_id', 'justification_document_path', 'status'];
+    protected $fillable = ['user_id', 'course_id', 'justification_document_path', 'status'];
 }

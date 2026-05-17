@@ -8,7 +8,9 @@ import {
   Settings, 
   LogOut, 
   ShieldCheck,
-  BarChart3
+  BarChart3,
+  Gift,
+  ClipboardList
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -18,18 +20,25 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab }) => {
   const navigate = useNavigate();
+  const userString = localStorage.getItem('user');
+  const user = userString ? JSON.parse(userString) : null;
+  const userRole = user?.role || 'student';
   
   const menuItems = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'students', label: 'الطلاب', icon: Users, path: '/students' },
-    { id: 'instructors', label: 'المدربون', icon: ShieldCheck, path: '/instructors' },
-    { id: 'courses', label: 'الدورات', icon: BookOpen, path: '/courses' },
-    { id: 'reports', label: 'التقارير', icon: BarChart3, path: '/reports' },
-    { id: 'settings', label: 'الإعدادات', icon: Settings, path: '/settings' },
+    { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, path: '/dashboard', roles: ['super_admin', 'academic_admin', 'instructor', 'student'] },
+    { id: 'students', label: 'الطلاب', icon: Users, path: '/students', roles: ['super_admin', 'academic_admin', 'instructor'] },
+    { id: 'instructors', label: 'المدربون', icon: ShieldCheck, path: '/instructors', roles: ['super_admin'] },
+    { id: 'courses', label: 'الدورات', icon: BookOpen, path: '/courses', roles: ['super_admin', 'academic_admin', 'instructor', 'student'] },
+    { id: 'requirements', label: 'المتطلبات', icon: ClipboardList, path: '/requirements', roles: ['super_admin', 'academic_admin'] },
+    { id: 'reports', label: 'التقارير', icon: BarChart3, path: '/reports', roles: ['super_admin', 'academic_admin'] },
+    { id: 'marketing', label: 'التسويق', icon: Gift, path: '/marketing', roles: ['super_admin'] },
+    { id: 'settings', label: 'الإعدادات', icon: Settings, path: '/settings', roles: ['super_admin', 'academic_admin', 'instructor', 'student'] },
   ];
 
+  const filteredItems = menuItems.filter(item => item.roles.includes(userRole));
+
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
   };
@@ -44,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab }) => {
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
-        {menuItems.map((item) => (
+        {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={() => navigate(item.path)}

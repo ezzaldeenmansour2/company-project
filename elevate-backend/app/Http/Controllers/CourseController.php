@@ -17,7 +17,6 @@ class CourseController extends Controller
 
         $now = Carbon::now();
 
-        // ÅÖÇÝÉ ÇáÎÕæãÇÊ áßá ÏæÑÉ
         $courses->map(function ($course) use ($now, $user) {
             $query = Discount::where('course_id', $course->id)
                 ->where(function ($q) use ($now) {
@@ -28,16 +27,13 @@ class CourseController extends Controller
                 });
 
             if ($user) {
-                // ÇáÈÍË Úä ÎÕã ãÎÕÕ ááØÇáÈ Ãæ ÎÕã ÚÇã ááÏæÑÉ
                 $query->where(function ($q) use ($user) {
                     $q->whereNull('user_id')->orWhere('user_id', $user->id);
                 });
             } else {
-                // ÒÇÆÑ: ÚÑÖ ÇáÎÕæãÇÊ ÇáÚÇãÉ ÝÞØ
                 $query->whereNull('user_id');
             }
 
-            // ÃÎÐ ÃÚáì äÓÈÉ ÎÕã
             $bestDiscount = $query->orderByDesc('percentage')->first();
 
             if ($bestDiscount) {
@@ -69,7 +65,7 @@ class CourseController extends Controller
         $course = Course::create($validated);
 
         return response()->json([
-            'message' => 'Êã ÅäÔÇÁ ÇáÏæÑÉ ÈäÌÇÍ',
+            'message' => 'Course created successfully',
             'course' => $course->load(['category', 'instructor'])
         ], 201);
     }

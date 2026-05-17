@@ -15,7 +15,9 @@ const Settings: React.FC = () => {
     const fetchProfile = async () => {
       try {
         const res = await api.get('/profile');
-        setProfile({ name: res.data.name, email: res.data.email });
+        if (res.data) {
+          setProfile({ name: res.data.name || '', email: res.data.email || '' });
+        }
       } catch (err) {
         console.error('Failed to fetch profile');
       }

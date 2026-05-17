@@ -47,7 +47,19 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ isOpen, onClose, 
     e.preventDefault();
     setIsLoading(true);
     try {
-      await api.post('/courses', formData);
+      let categoryId = formData.category_id;
+      // If category is not a number, attempt to create it
+      if (isNaN(Number(categoryId))) {
+        // check if exists
+        const existing = categories.find(c => c.name === categoryId.trim());
+        if (existing) {
+          categoryId = existing.id.toString();
+        } else {
+          const createRes = await api.post('/categories', { name: categoryId.trim() });
+          categoryId = createRes.data.id.toString();
+        }
+      }
+      await api.post('/courses', { ...formData, category_id: categoryId });
       onSuccess();
       onClose();
       setFormData({ title: '', description: '', category_id: '', price: '' });
@@ -98,16 +110,13 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ isOpen, onClose, 
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">التصنيف</label>
-                <select 
-                  required
+                <input 
+                  type="text" required
                   value={formData.category_id}
                   onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none"
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="bg-[#1e293b] text-white">{cat.name}</option>
-                  ))}
-                </select>
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  placeholder="مثال: الذكاء الاصطناعي"
+                />
               </div>
 
               <div>

@@ -38,7 +38,7 @@ class CommentController extends Controller
     {
         $comment = Comment::findOrFail($id);
         
-        if ($comment->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if ($comment->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
             return response()->json(['message' => 'غير مصرح لك بحذف هذا التعليق'], 403);
         }
 

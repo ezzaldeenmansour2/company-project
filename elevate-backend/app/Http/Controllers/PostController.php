@@ -66,7 +66,7 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         
         // التحقق من أن المستخدم هو صاحب المنشور أو مسؤول
-        if ($post->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if ($post->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
             return response()->json(['message' => 'غير مصرح لك بحذف هذا المنشور'], 403);
         }
 

@@ -17,11 +17,14 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MarketingController;
+use App\Http\Controllers\PrerequisiteController;
+use App\Http\Controllers\ForumModerationController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware(['auth:sanctum', 'device.check'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -30,6 +33,7 @@ Route::middleware(['auth:sanctum', 'device.check'])->group(function () {
     // مسارات إدارة الدورات
     Route::apiResource('courses', CourseController::class);
     Route::get('categories', [CategoryController::class, 'index']);
+    Route::post('categories', [CategoryController::class, 'store']);
 
     // مسارات الاشتراك في الدورات
     Route::get('/my-courses', [EnrollmentController::class, 'myCourses']);
@@ -41,6 +45,7 @@ Route::middleware(['auth:sanctum', 'device.check'])->group(function () {
         Route::get('/active/{courseId}', [AttendanceController::class, 'getActiveSession']);
         Route::post('/start', [AttendanceController::class, 'startSession']);
         Route::get('/{sessionId}/qr', [AttendanceController::class, 'generateQR']);
+        Route::get('/{sessionId}/attendees', [AttendanceController::class, 'getAttendees']);
         Route::post('/{sessionId}/mark', [AttendanceController::class, 'markAttendance']);
         Route::post('/{sessionId}/close', [AttendanceController::class, 'closeSession']);
     });
@@ -71,7 +76,7 @@ Route::middleware(['auth:sanctum', 'device.check'])->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
 
     // مسارات إدارة المستخدمين (للمسؤول فقط)
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('admin.role')->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'overview']);
         Route::get('/students', [UserController::class, 'students']);
         Route::get('/instructors', [UserController::class, 'instructors']);
@@ -79,4 +84,21 @@ Route::middleware(['auth:sanctum', 'device.check'])->group(function () {
         Route::post('/users/{id}/reset-device', [UserController::class, 'resetDevice']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
     });
+
+    // Marketing & Promotions
+    Route::get('/marketing/ads', [MarketingController::class, 'getActiveAds']);
+    Route::post('/marketing/ads', [MarketingController::class, 'storeAd']);
+    Route::post('/marketing/discounts', [MarketingController::class, 'storeDiscount']);
+
+    // Prerequisites & Exemptions
+    Route::post('/courses/{courseId}/exemptions', [PrerequisiteController::class, 'requestExemption']);
+    Route::post('/exemptions/{id}/approve', [PrerequisiteController::class, 'approveExemption']);
+    Route::post('/exemptions/{id}/reject', [PrerequisiteController::class, 'rejectExemption']);
+
+    // Forum Moderation (Admin)
+    Route::delete('/moderation/comment/{id}', [ForumModerationController::class, 'deleteComment']);
+    Route::post('/moderation/ban/{id}', [ForumModerationController::class, 'banUser']);
+
+    // Block Student from Course
+    Route::post('/courses/{courseId}/students/{userId}/block', [EnrollmentController::class, 'blockStudent']);
 });

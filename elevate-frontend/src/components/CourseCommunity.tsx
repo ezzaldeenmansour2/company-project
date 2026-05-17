@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, Trash2, User, Smile, Image as ImageIcon, MoreVertical, Loader2 } from 'lucide-react';
+import { MessageSquare, Send, Trash2, Smile, Image as ImageIcon, Loader2, Ban } from 'lucide-react';
 import api from '../services/api';
 
 interface Comment {
   id: number;
   content: string;
-  user: { name: string };
+  user: { id: number; name: string };
   created_at: string;
 }
 
@@ -31,8 +31,8 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
 
   const fetchPosts = async () => {
     try {
-      const res = await api.get(`/courses/${courseId}/posts`);
-      setPosts(res.data);
+      const res = await api.get('/courses/' + courseId + '/posts');
+      setPosts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch posts');
     } finally {
@@ -55,8 +55,8 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
       });
       setNewPostContent('');
       fetchPosts();
-    } catch (err) {
-      console.error('Failed to create post');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to create post');
     } finally {
       setIsSubmitting(false);
     }
@@ -72,18 +72,40 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
       setCommentContent('');
       setActiveCommentPost(null);
       fetchPosts();
-    } catch (err) {
-      console.error('Failed to create comment');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to create comment');
     }
   };
 
   const handleDeletePost = async (id: number) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
     try {
-      await api.delete(`/posts/${id}`);
+      await api.delete('/posts/' + id);
       fetchPosts();
     } catch (err) {
       console.error('Delete failed');
+    }
+  };
+
+  const handleAdminDeleteComment = async (id: number) => {
+    const reason = window.prompt('Enter reason for admin deletion:');
+    if (!reason) return;
+    try {
+      await api.delete('/moderation/comment/' + id, { data: { reason } });
+      fetchPosts();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Delete failed');
+    }
+  };
+
+  const handleAdminBanUser = async (userId: number, userName: string) => {
+    const reason = window.prompt('Enter reason for banning ' + userName + ' from the forum:');
+    if (!reason) return;
+    try {
+      await api.post('/moderation/ban/' + userId, { reason });
+      alert('User banned successfully');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Ban failed');
     }
   };
 
@@ -93,19 +115,23 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
       <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-xl">
         <div className="flex gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-lg">
-            {currentUser.name?.charAt(0)}
+            {currentUser.name?.charAt(0) || 'U'}
           </div>
           <div className="flex-1">
             <textarea
-              placeholder="بماذا تفكر؟ شارك زملائك..."
+              placeholder="What's on your mind? Share with your classmates..."
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               className="w-full bg-transparent border-none focus:ring-0 text-white placeholder-gray-500 resize-none h-24 text-lg"
             />
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
               <div className="flex gap-2">
-                <button className="p-2 hover:bg-white/5 rounded-xl text-gray-400 transition-all"><ImageIcon size={20} /></button>
-                <button className="p-2 hover:bg-white/5 rounded-xl text-gray-400 transition-all"><Smile size={20} /></button>
+                <button className="p-2 hover:bg-white/5 rounded-xl text-gray-400 transition-all">
+                  <ImageIcon size={20} />
+                </button>
+                <button className="p-2 hover:bg-white/5 rounded-xl text-gray-400 transition-all">
+                  <Smile size={20} />
+                </button>
               </div>
               <button
                 onClick={handleCreatePost}
@@ -113,7 +139,7 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
                 className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                نشر
+                Post
               </button>
             </div>
           </div>
@@ -123,7 +149,13 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
       {/* Posts List */}
       <div className="space-y-6">
         {loading ? (
-          <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-500" size={40} /></div>
+          <div className="p-20 flex justify-center">
+            <Loader2 className="animate-spin text-blue-500" size={40} />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            No posts yet. Be the first to share something!
+          </div>
         ) : (
           posts.map((post) => (
             <motion.div
@@ -138,14 +170,25 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
                     {post.user.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">{post.user.name}</h4>
+                    <h4 className="font-bold text-white flex items-center gap-2">
+                      {post.user.name}
+                      {currentUser.role === 'admin' && post.user.id !== currentUser.id && (
+                        <button
+                          onClick={() => handleAdminBanUser(post.user.id, post.user.name)}
+                          className="text-xs bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                          title="Ban from forum"
+                        >
+                          <Ban size={12} /> Ban
+                        </button>
+                      )}
+                    </h4>
                     <span className="text-xs text-gray-500 font-mono">
-                      {new Date(post.created_at).toLocaleString('ar-EG')}
+                      {new Date(post.created_at).toLocaleString()}
                     </span>
                   </div>
                 </div>
                 {(post.user.id === currentUser.id || currentUser.role === 'admin') && (
-                  <button 
+                  <button
                     onClick={() => handleDeletePost(post.id)}
                     className="p-2 hover:bg-red-500/10 text-gray-600 hover:text-red-500 rounded-xl transition-all"
                   >
@@ -159,12 +202,12 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
               </p>
 
               <div className="flex items-center gap-6 pt-6 border-t border-white/5">
-                <button 
+                <button
                   onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                   className="flex items-center gap-2 text-sm text-gray-400 hover:text-blue-400 transition-all"
                 >
                   <MessageSquare size={18} />
-                  {post.comments.length} تعليقات
+                  {post.comments.length} Comments
                 </button>
               </div>
 
@@ -179,30 +222,43 @@ const CourseCommunity: React.FC<{ courseId: number }> = ({ courseId }) => {
                   >
                     <div className="mt-6 space-y-4">
                       {post.comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3 bg-white/5 p-4 rounded-2xl">
+                        <div key={comment.id} className="flex gap-3 bg-white/5 p-4 rounded-2xl group/comment">
                           <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold">
                             {comment.user.name.charAt(0)}
                           </div>
                           <div className="flex-1">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <span className="text-xs font-bold text-blue-400">{comment.user.name}</span>
-                              <span className="text-[10px] text-gray-600">{new Date(comment.created_at).toLocaleTimeString()}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-gray-600">
+                                  {new Date(comment.created_at).toLocaleTimeString()}
+                                </span>
+                                {currentUser.role === 'admin' && (
+                                  <button
+                                    onClick={() => handleAdminDeleteComment(comment.id)}
+                                    className="opacity-0 group-hover/comment:opacity-100 text-gray-500 hover:text-red-400 transition-all"
+                                    title="Admin delete with reason"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <p className="text-sm text-gray-300 mt-1">{comment.content}</p>
                           </div>
                         </div>
                       ))}
-                      
+
                       <div className="flex gap-2 mt-4 pt-4">
                         <input
                           type="text"
-                          placeholder="أكتب تعليقك..."
+                          placeholder="Write a comment..."
                           value={commentContent}
                           onChange={(e) => setCommentContent(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCreateComment(post.id)}
                           className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
-                        <button 
+                        <button
                           onClick={() => handleCreateComment(post.id)}
                           className="p-2 bg-blue-600 rounded-xl text-white hover:bg-blue-700 transition-all"
                         >

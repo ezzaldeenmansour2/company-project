@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * تسجيل مستخدم جديد مع دعم ربط الجهاز للطلاب.
+     * تسجيل مستخدم جديد.
      */
     public function register(Request $request)
     {
@@ -19,8 +19,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:student,instructor',
-            'device_uuid' => 'required_if:role,student|string|unique:users,device_uuid',
+            'role' => 'required|in:super_admin,academic_admin,instructor,student',
         ]);
 
         $user = User::create([
@@ -28,7 +27,6 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'device_uuid' => $request->role === 'student' ? $request->device_uuid : null,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -41,14 +39,13 @@ class AuthController extends Controller
     }
 
     /**
-     * تسجيل الدخول مع التحقق من ربط الجهاز للطلاب.
+     * تسجيل الدخول.
      */
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
-            'device_uuid' => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -57,22 +54,6 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => ['بيانات الاعتماد غير صحيحة.'],
             ]);
-        }
-
-        // التحقق من ربط الجهاز للطلاب (Device Binding)
-        if ($user->role === 'student') {
-            if ($user->device_uuid && $user->device_uuid !== $request->device_uuid) {
-                return response()->json([
-                    'message' => 'هذا الحساب مرتبط بجهاز آخر. يرجى التواصل مع الإدارة لفك الارتباط.',
-                    'error_code' => 'DEVICE_MISMATCH'
-                ], 403);
-            }
-            
-            // إذا كان الطالب لم يربط جهازه بعد، نقوم بربطه عند أول دخول
-            if (!$user->device_uuid && $request->device_uuid) {
-                $user->device_uuid = $request->device_uuid;
-                $user->save();
-            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

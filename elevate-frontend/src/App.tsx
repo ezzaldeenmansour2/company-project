@@ -1,12 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
+import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import CourseDetails from './pages/CourseDetails';
 import Students from './pages/Students';
 import Instructors from './pages/Instructors';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Marketing from './pages/Marketing';
+import Requirements from './pages/Requirements';
+import Submissions from './pages/Submissions';
+import AcademicAlerts from './pages/AcademicAlerts';
+import MyCertificates from './pages/MyCertificates';
 import Register from './pages/Register';
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,6 +29,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     else if (path.includes('/students')) setActiveTab('students');
     else if (path.includes('/instructors')) setActiveTab('instructors');
     else if (path.includes('/reports')) setActiveTab('reports');
+    else if (path.includes('/marketing')) setActiveTab('marketing');
+    else if (path.includes('/requirements')) setActiveTab('requirements');
+    else if (path.includes('/academic-alerts')) setActiveTab('academic-alerts');
+    else if (path.includes('/my-certificates')) setActiveTab('my-certificates');
     else if (path.includes('/settings')) setActiveTab('settings');
   }, [location]);
 
@@ -49,7 +58,7 @@ function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <AdminDashboard />
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           } 
@@ -80,7 +89,7 @@ function App() {
         <Route 
           path="/students" 
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['super_admin', 'academic_admin', 'instructor']}>
               <Layout>
                 <Students />
               </Layout>
@@ -91,7 +100,7 @@ function App() {
         <Route 
           path="/instructors" 
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['super_admin']}>
               <Layout>
                 <Instructors />
               </Layout>
@@ -102,9 +111,31 @@ function App() {
         <Route 
           path="/reports" 
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['super_admin', 'academic_admin']}>
               <Layout>
                 <Reports />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/marketing" 
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <Layout>
+                <Marketing />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/requirements" 
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'academic_admin']}>
+              <Layout>
+                <Requirements />
               </Layout>
             </ProtectedRoute>
           } 
@@ -116,6 +147,39 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Settings />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/assignments/:assignmentId/submissions" 
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'academic_admin', 'instructor']}>
+              <Layout>
+                <Submissions />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/academic-alerts" 
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'academic_admin']}>
+              <Layout>
+                <AcademicAlerts />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/my-certificates" 
+          element={
+            <ProtectedRoute allowedRoles={['student', 'super_admin']}>
+              <Layout>
+                <MyCertificates />
               </Layout>
             </ProtectedRoute>
           } 

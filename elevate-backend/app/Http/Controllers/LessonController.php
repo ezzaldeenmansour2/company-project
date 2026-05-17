@@ -20,7 +20,7 @@ class LessonController extends Controller
 
         // التحقق من أن المستخدم هو صاحب الدورة أو مسؤول
         $course = Course::findOrFail($validated['course_id']);
-        if ($request->user()->id !== $course->instructor_id && $request->user()->role !== 'admin') {
+        if ($request->user()->id !== $course->instructor_id && !$request->user()->isAdmin()) {
             return response()->json(['message' => 'غير مصرح لك بإضافة دروس لهذه الدورة'], 403);
         }
 

@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class PromoAd extends Model
 {
-    protected  = ['title', 'image_path', 'link', 'is_active'];
+    protected $fillable = ['title', 'image_path', 'link', 'is_active'];
 }
