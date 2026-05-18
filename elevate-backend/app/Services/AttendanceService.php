@@ -7,6 +7,8 @@ use App\Models\AttendanceRecord;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Str;
 
 class AttendanceService
 {
@@ -32,7 +34,8 @@ class AttendanceService
     public function generateQRToken($sessionId)
     {
         $timeSlice = floor(time() / 3);
-        $token = hash('sha256', "elevate_qr_{$sessionId}_{$timeSlice}");
+        $payload = json_encode(['id' => $sessionId, 't' => $timeSlice, 'r' => Str::random(8)]);
+        $token = Crypt::encryptString($payload);
 
         // Store current and previous tokens to handle network delay (Sliding Window)
         $tokens = Cache::get("attendance_tokens_{$sessionId}", []);
@@ -70,20 +73,15 @@ class AttendanceService
             throw new \Exception('انتهت صلاحية الرمز، يرجى المحاولة مرة أخرى', 403);
         }
 
-        // 3. Geo-fencing Check
-        if ($session->latitude && $session->longitude) {
-            if (!isset($data['latitude']) || !isset($data['longitude'])) {
-                throw new \Exception('يرجى تفعيل خدمة الموقع لتسجيل الحضور', 403);
-            }
-
+        // 3. Geo-fencing Check (Optional Logging instead of blocking)
+        $distance = null;
+        if ($session->latitude && $session->longitude && isset($data['latitude']) && isset($data['longitude'])) {
             $distance = $this->calculateDistance(
                 $session->latitude, $session->longitude,
                 $data['latitude'], $data['longitude']
             );
-
-            if ($distance > $session->radius) {
-                throw new \Exception("أنت خارج النطاق المسموح به ({$session->radius}م)", 403);
-            }
+            // Optionally, you could flag records where $distance > $session->radius
+            // instead of throwing an exception, to accommodate online students.
         }
 
         // 4. Atomic Lock (Per User to prevent double-scan)
@@ -107,6 +105,10 @@ class AttendanceService
                     'qr_code_token' => $data['qr_token'],
                     'status' => 'present',
                     'scanned_at' => now(),
+                    'ip_address' => $data['ip_address'] ?? null,
+                    'user_agent' => $data['user_agent'] ?? null,
+                    'latitude' => $data['latitude'] ?? null,
+                    'longitude' => $data['longitude'] ?? null,
                 ]);
             });
         });

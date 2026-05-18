@@ -31,7 +31,7 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
     setIsScanning(false);
     setIsMarking(true);
     setStatus('idle');
-    
+
     try {
       let lat = 0;
       let lng = 0;
@@ -47,10 +47,10 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
 
       const res = await api.post(`/attendance/${activeSession.id}/mark`, {
         qr_token: scannedToken,
-        latitude: lat, 
-        longitude: lng 
+        latitude: lat,
+        longitude: lng
       });
-      
+
       setStatus('success');
       setMessage(res.data.message);
     } catch (err: any) {
@@ -111,7 +111,7 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
             exit={{ opacity: 0, height: 0 }}
             className="mt-6 overflow-hidden relative rounded-2xl bg-black"
           >
-            <Scanner 
+            <Scanner
               onScan={(result) => {
                 if (result && result.length > 0) {
                   handleScan(result[0].rawValue);
@@ -123,7 +123,7 @@ const StudentAttendance: React.FC<{ courseId: number }> = ({ courseId }) => {
                 finder: true,
               }}
             />
-            <button 
+            <button
               onClick={() => setIsScanning(false)}
               className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 z-10"
             >

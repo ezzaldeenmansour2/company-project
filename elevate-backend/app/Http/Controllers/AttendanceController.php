@@ -56,13 +56,11 @@ class AttendanceController extends Controller
     {
         $session = AttendanceSession::findOrFail($sessionId);
         
+        // Authorization check via policy
+        $this->authorize('manage', $session);
+
         if ($session->status !== 'active') {
             return response()->json(['message' => 'جلسة التحضير غير نشطة حالياً'], 400);
-        }
-
-        // Security: Only the instructor of the course can generate the QR token
-        if (Auth::id() !== $session->instructor_id && !Auth::user()->isAdmin()) {
-            return response()->json(['message' => 'غير مصرح لك بتوليد كود التحضير'], 403);
         }
 
         $result = $this->attendanceService->generateQRToken($sessionId);
@@ -75,14 +73,23 @@ class AttendanceController extends Controller
      */
     public function markAttendance(Request $request, $sessionId)
     {
+        $session = AttendanceSession::findOrFail($sessionId);
+
+        // Authorization check via policy (ensures student is enrolled)
+        $this->authorize('attend', $session);
+
         $request->validate([
             'qr_token' => 'required|string',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
         ]);
 
+        $data = $request->all();
+        $data['ip_address'] = $request->ip();
+        $data['user_agent'] = $request->userAgent();
+
         try {
-            $record = $this->attendanceService->markAttendance($sessionId, $request->all());
+            $record = $this->attendanceService->markAttendance($sessionId, $data);
             
             return response()->json([
                 'message' => 'تم تسجيل حضورك بنجاح!',
@@ -99,6 +106,7 @@ class AttendanceController extends Controller
     public function closeSession($sessionId)
     {
         $session = AttendanceSession::findOrFail($sessionId);
+        $this->authorize('manage', $session);
         $session->update(['status' => 'closed']);
         return response()->json(['message' => 'تم إغلاق جلسة التحضير']);
     }
@@ -108,6 +116,9 @@ class AttendanceController extends Controller
      */
     public function getAttendees($sessionId)
     {
+        $session = AttendanceSession::findOrFail($sessionId);
+        $this->authorize('manage', $session);
+
         $records = AttendanceRecord::with('user')
             ->where('attendance_session_id', $sessionId)
             ->orderBy('scanned_at', 'desc')

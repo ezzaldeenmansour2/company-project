@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   BarChart3,
   Gift,
-  ClipboardList
+  ClipboardList,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,6 +25,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab }) => {
   const userString = localStorage.getItem('user');
   const user = userString ? JSON.parse(userString) : null;
   const userRole = user?.role || 'student';
+  
+  const [theme, setTheme] = React.useState(() => localStorage.getItem('theme') || 'dark');
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  };
   
   const menuItems = [
     { id: 'dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, path: '/dashboard', roles: ['super_admin', 'academic_admin', 'instructor', 'student'] },
@@ -69,10 +84,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab }) => {
         ))}
       </nav>
 
-      <div className="px-4 mt-auto">
+      <div className="px-4 mt-auto space-y-2">
+        <button 
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
+        >
+          {theme === 'dark' ? <Sun size={20} className="text-amber-500" /> : <Moon size={20} className="text-indigo-500" />}
+          <span className="text-sm font-medium">
+            {theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}
+          </span>
+        </button>
+
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
         >
           <LogOut size={20} />
           <span className="text-sm font-medium">تسجيل الخروج</span>

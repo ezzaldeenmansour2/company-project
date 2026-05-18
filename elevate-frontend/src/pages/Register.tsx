@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { User, Mail, Lock, Smartphone, ArrowRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 font-arabic" dir="rtl">
+      <ThemeToggle />
       {/* Background Decor */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />

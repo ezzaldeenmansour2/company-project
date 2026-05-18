@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import api from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 relative overflow-hidden">
+      <ThemeToggle />
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]" />
 

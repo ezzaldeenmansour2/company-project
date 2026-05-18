@@ -44,10 +44,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('attendance')->group(function () {
         Route::get('/active/{courseId}', [AttendanceController::class, 'getActiveSession']);
         Route::post('/start', [AttendanceController::class, 'startSession']);
-        Route::get('/{sessionId}/qr', [AttendanceController::class, 'generateQR']);
         Route::get('/{sessionId}/attendees', [AttendanceController::class, 'getAttendees']);
-        Route::post('/{sessionId}/mark', [AttendanceController::class, 'markAttendance']);
         Route::post('/{sessionId}/close', [AttendanceController::class, 'closeSession']);
+        
+        // مسارات مقيدة لمنع الاختراق العشوائي (Rate Limiting)
+        Route::middleware('throttle:5,1')->group(function () {
+            Route::get('/{sessionId}/qr', [AttendanceController::class, 'generateQR']);
+            Route::post('/{sessionId}/mark', [AttendanceController::class, 'markAttendance']);
+        });
     });
 
     // مسارات المجتمع (المنشورات والتعليقات)

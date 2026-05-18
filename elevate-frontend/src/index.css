@@ -1,1 +1,214 @@
 @import "tailwindcss";
+
+/* ==========================================
+   ELEVATE PREMIUM LIGHT/DARK THEME SYSTEM
+   ========================================== */
+
+:root {
+  color-scheme: dark;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Base Light Theme definition */
+.light {
+  color-scheme: light;
+  
+  --bg-primary: #f8fafc;        /* Soft slate slate-50 */
+  --bg-secondary: #ffffff;      /* Pure white */
+  --bg-tertiary: #f1f5f9;       /* Slate-100 */
+  --text-primary: #0f172a;      /* Slate-900 */
+  --text-secondary: #475569;    /* Slate-600 */
+  --text-tertiary: #64748b;     /* Slate-500 */
+  --border-color: rgba(148, 163, 184, 0.12); /* Subtle divider */
+  --border-color-hover: rgba(148, 163, 184, 0.25);
+  --card-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f8fafc;
+  --input-bg: #f8fafc;
+}
+
+/* Ensure smooth transition for all color properties */
+*, *::before, *::after {
+  transition-property: background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* ==========================================
+   LIGHT THEME GLOBAL OVERRIDES
+   ========================================== */
+
+/* Main Background and Text Resets */
+.light,
+.light body,
+.light #root,
+.light .min-h-screen {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Background Utility Overrides for Dark Colors */
+.light [class*="bg-[#0f172a]"],
+.light [class*="bg-[#09090b]"],
+.light [class*="bg-[#020617]"],
+.light [class*="bg-[#09090b]"],
+.light [class*="bg-zinc-950"],
+.light [class*="bg-zinc-900"],
+.light [class*="bg-slate-950"],
+.light [class*="bg-slate-900"],
+.light [class*="bg-[#0d0e12]"],
+.light [class*="bg-[#0a0b0e]"] {
+  background-color: var(--bg-primary) !important;
+}
+
+/* Card Layers and Transparent Backgrounds */
+.light [class*="bg-white/5"],
+.light [class*="bg-white/[0.08]"],
+.light [class*="bg-white/10"],
+.light [class*="bg-zinc-900/40"],
+.light [class*="bg-zinc-900/30"],
+.light [class*="bg-zinc-900/50"],
+.light [class*="bg-slate-900/40"],
+.light [class*="bg-slate-900/50"],
+.light [class*="bg-[#1e293b]"],
+.light [class*="bg-zinc-950/50"],
+.light [class*="bg-zinc-900/80"],
+.light [class*="bg-zinc-900/50"],
+.light [class*="bg-[#18181b]"],
+.light [class*="bg-slate-800"],
+.light [class*="bg-zinc-800"],
+.light [class*="bg-slate-800/50"],
+.light [class*="bg-zinc-900/10"] {
+  background-color: var(--card-bg) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 10px -1px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Premium Glassmorphism Overrides */
+.light [class*="backdrop-blur"] {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* Sidebar Specific Layout Rules */
+.light .w-64.bg-\[\#0f172a\] {
+  background-color: var(--sidebar-bg) !important;
+  border-left: 1px solid var(--border-color) !important;
+  box-shadow: 2px 0 20px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Sidebar navigation buttons */
+.light .text-gray-400.hover\:bg-white\/5:hover {
+  background-color: var(--sidebar-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Text Colors Overrides */
+.light [class*="text-zinc-100"],
+.light [class*="text-zinc-200"],
+.light [class*="text-white"],
+.light .text-zinc-100,
+.light .text-white {
+  color: var(--text-primary) !important;
+}
+
+.light [class*="text-gray-400"],
+.light [class*="text-gray-300"],
+.light [class*="text-slate-400"],
+.light [class*="text-zinc-400"],
+.light [class*="text-zinc-500"],
+.light [class*="text-zinc-300"],
+.light [class*="text-slate-300"] {
+  color: var(--text-secondary) !important;
+}
+
+.light [class*="text-gray-500"],
+.light [class*="text-zinc-600"],
+.light [class*="text-slate-500"] {
+  color: var(--text-tertiary) !important;
+}
+
+/* Direct Headers override to guarantee high contrast */
+.light h1, .light h2, .light h3, .light h4, .light h5, .light h6,
+.light h1 *, .light h2 *, .light h3 *, .light h4 *, .light h5 *, .light h6 * {
+  color: var(--text-primary) !important;
+}
+
+/* Divider & Border Color Overrides */
+.light [class*="border-white/10"],
+.light [class*="border-white/5"],
+.light [class*="border-zinc-800"],
+.light [class*="border-zinc-700"],
+.light [class*="border-slate-800"],
+.light [class*="border-slate-700"],
+.light [class*="border-zinc-800/80"],
+.light [class*="border-zinc-800/50"],
+.light [class*="border-white/20"] {
+  border-color: var(--border-color) !important;
+}
+
+/* Inputs, Textareas, and Dropdown Controls */
+.light input:not([type="checkbox"]):not([type="radio"]),
+.light select,
+.light textarea {
+  background-color: var(--input-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.light input:not([type="checkbox"]):not([type="radio"]):focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: #3b82f6 !important;
+  background-color: #ffffff !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* Checkbox specific overrides */
+.light input[type="checkbox"] {
+  border-color: var(--text-tertiary) !important;
+  background-color: #ffffff !important;
+}
+
+/* Interactive tables and lists hover state */
+.light tr.hover\:bg-zinc-800\/30:hover {
+  background-color: rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Modal overlays */
+.light [class*="bg-[#020617]/90"],
+.light [class*="bg-black/80"],
+.light [class*="bg-black/50"],
+.light [class*="bg-[#0a0a0c]/80"] {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Custom cards or buttons that use light background in dark mode */
+.light button.bg-white {
+  background-color: var(--text-primary) !important;
+  color: #ffffff !important;
+}
+
+.light button.bg-white:hover {
+  background-color: #1e293b !important;
+}
+
+/* Dynamic design aesthetic for Light mode scrollbar */
+.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.light ::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
